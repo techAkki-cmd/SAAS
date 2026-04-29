@@ -1,3 +1,4 @@
+
 # StockFlow - Bynry Backend Case Study
 
 A business-to-business cloud-based platform for managing inventories. The application is an illustration of proper transactions, normalization of database structure, and a well-designed API system to manage items and inventory levels in different warehouse locations.
@@ -10,7 +11,11 @@ This repository contains the solutions for the three core phases of the Bynry te
 2. **Database Architecture** (PostgreSQL)
 3. **API Implementation** (Java/Spring Boot)
 
-## 🛠 Tech Stack
+## Full Case Study Document
+   https://docs.google.com/document/d/1TJB_iNxrw9ZUPIiBj4tLqBOR6SBKsSBkJKnE4m5bJoY/edit?usp=sharing
+
+
+##  Tech Stack
 * **Language:** Java 17+ (utilizing Records for immutable DTOs), Python 3.x (Debugging phase)
 * **Framework:** Spring Boot (REST APIs), Flask
 * **Database:** PostgreSQL (Relational schema with append-only ledger)
@@ -31,7 +36,24 @@ Instead of mutating a static quantity column, inventory changes are tracked via 
 * The `/alerts/low-stock` endpoint is fully paginated to prevent memory exhaustion when querying large B2B catalogs.
 * Read-heavy services are annotated with `@Transactional(readOnly = true)` to bypass Hibernate's dirty-checking overhead.
 
-##  Project │   └── product_controller.py      # Part 1: Refactored Flask endpoint
+##  Documented Assumptions & Edge Cases Handled
+
+* **Stockout Projection:** The V1 model uses a simple linear extrapolation (current stock / 30-day average daily velocity) to calculate `days_until_stockout`. Division-by-zero is handled natively via ternary fallback.
+* **Failure Defense:** The system gracefully handles missing entity relationships (e.g., deleted warehouses or missing suppliers) by assigning nulls/defaults rather than throwing `NullPointerExceptions` that would crash batch processes.
+* **M:N Supplier Mapping:** Bypassed the simplistic 1:N assumption to implement a robust M:N `product_suppliers` association, accounting for real-world scenarios where a single SKU is procured from multiple vendors.
+
+##  Setup & Execution
+*(Note: As this is a conceptual case study, the code represents core logical blocks rather than a fully wired, executable monolithic application.)*
+
+1. Review `schema.sql` for the relational design and indexing strategy.
+2. Review the Spring Boot controller and service layer for the primary business logic.
+3. Review `product_controller.py` for Python transaction debugging.
+
+
+##  Project Structure
+```text
+├── debugging/
+│   └── product_controller.py      # Part 1: Refactored Flask endpoint
 ├── database/
 │   └── schema.sql                 # Part 2: PostgreSQL DDL & Indexing
 └── src/main/java/com/bynry/stockflow/
@@ -41,15 +63,3 @@ Instead of mutating a static quantity column, inventory changes are tracked via 
     │   └── AlertService.java            # Part 3: Business Logic
     └── model/                           # Entity definitions (assumed)
     
-## 🧠 Documented Assumptions & Edge Cases Handled
-
-* **Stockout Projection:** The V1 model uses a simple linear extrapolation (current stock / 30-day average daily velocity) to calculate `days_until_stockout`. Division-by-zero is handled natively via ternary fallback.
-* **Failure Defense:** The system gracefully handles missing entity relationships (e.g., deleted warehouses or missing suppliers) by assigning nulls/defaults rather than throwing `NullPointerExceptions` that would crash batch processes.
-* **M:N Supplier Mapping:** Bypassed the simplistic 1:N assumption to implement a robust M:N `product_suppliers` association, accounting for real-world scenarios where a single SKU is procured from multiple vendors.
-
-## ⚙️ Setup & Execution
-*(Note: As this is a conceptual case study, the code represents core logical blocks rather than a fully wired, executable monolithic application.)*
-
-1. Review `schema.sql` for the relational design and indexing strategy.
-2. Review the Spring Boot controller and service layer for the primary business logic.
-3. Review `product_controller.py` for Python transaction debugging.
