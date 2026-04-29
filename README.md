@@ -13,6 +13,7 @@ This repository contains the solutions for the three core phases of the Bynry te
 
 ## Full Case Study Document
    https://docs.google.com/document/d/1TJB_iNxrw9ZUPIiBj4tLqBOR6SBKsSBkJKnE4m5bJoY/edit?usp=sharing
+   https://drive.google.com/file/d/1J3UA7LuwF48Y3Q3wLYafHdfjkO1bFpSB/view?usp=drive_link
 
 
 ##  Tech Stack
