@@ -12,7 +12,8 @@ record AlertDTO(Long productId, String productName, String sku, Long warehouseId
                 String warehouseName, Integer currentStock, Integer threshold, 
                 Integer daysUntilStockout, SupplierDTO supplier) {}
                 
-record AlertResponse(List<AlertDTO> alerts, int totalAlerts) {}
+// API Shaped with pagination metadata for frontend scalability
+record AlertResponse(List<AlertDTO> alerts, int totalAlerts, int currentPage, boolean hasNext) {}
 
 @RestController
 @RequestMapping("/api/companies")
@@ -26,9 +27,12 @@ public class LowStockAlertController {
     }
 
     @GetMapping("/{companyId}/alerts/low-stock")
-    public ResponseEntity<?> getLowStockAlerts(@PathVariable Long companyId) {
+    public ResponseEntity<?> getLowStockAlerts(
+            @PathVariable Long companyId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size) {
         try {
-            AlertResponse response = alertService.generateLowStockAlerts(companyId);
+            AlertResponse response = alertService.generateLowStockAlerts(companyId, page, size);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             logger.error("Error fetching alerts for companyId: {}", companyId, e);
@@ -36,5 +40,4 @@ public class LowStockAlertController {
         }
     }
 }
-
-//ERRORS ARE COMING DUE TO MISSING POM.XML DEPENDENCIES.
+//ERROR BECAUSE POM FILE IS MISSING
