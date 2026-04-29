@@ -2,6 +2,7 @@ package com.bynry.stockflow.service;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.PageRequest;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 
@@ -15,13 +16,19 @@ public class AlertService {
     }
 
     @Transactional(readOnly = true)
-    public AlertResponse generateLowStockAlerts(Long companyId) {
+    public AlertResponse generateLowStockAlerts(Long companyId, int page, int size) {
         LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(30);
         
-        var inventoryRecords = inventoryRepo.findByCompanyIdWithDetails(companyId);
+        // Pagination applied to prevent OutOfMemory errors on large B2B datasets
+        var pageable = PageRequest.of(page, size);
+        
+        // Assumes repository method uses @EntityGraph or JOIN FETCH to prevent N+1 queries
+        var inventoryPage = inventoryRepo.findByCompanyIdWithDetails(companyId, pageable);
         var alerts = new ArrayList<AlertDTO>();
 
-        for (var inv : inventoryRecords) {
+        for (var inv : inventoryPage.getContent()) {
+            // Note: In a highly scaled system, this loop query should be batched 
+            // or pulled from a materialized view/Redis cache to avoid DB hammering.
             int recentSalesVolume = inventoryRepo.sumSalesVolumeSince(inv.getId(), thirtyDaysAgo);
             
             if (recentSalesVolume == 0) continue;
@@ -36,18 +43,26 @@ public class AlertService {
                     ? (int) (inv.getQuantity() / dailyVelocity) 
                     : 999; 
 
-                var supplierDto = new SupplierDTO(
-                    inv.getProduct().getSupplier().getId(),
-                    inv.getProduct().getSupplier().getName(),
-                    inv.getProduct().getSupplier().getContactEmail()
-                );
+                // Failure Scenario Defense: Handle unassigned or deleted suppliers gracefully
+                SupplierDTO supplierDto = null;
+                if (inv.getProduct().getSupplier() != null) {
+                    supplierDto = new SupplierDTO(
+                        inv.getProduct().getSupplier().getId(),
+                        inv.getProduct().getSupplier().getName(),
+                        inv.getProduct().getSupplier().getContactEmail()
+                    );
+                }
+
+                // Failure Scenario Defense: Handle missing warehouse references
+                String warehouseName = inv.getWarehouse() != null ? inv.getWarehouse().getName() : "Unknown Location";
+                Long warehouseId = inv.getWarehouse() != null ? inv.getWarehouse().getId() : null;
 
                 alerts.add(new AlertDTO(
                     inv.getProduct().getId(),
                     inv.getProduct().getName(),
                     inv.getProduct().getSku(),
-                    inv.getWarehouse().getId(),
-                    inv.getWarehouse().getName(),
+                    warehouseId,
+                    warehouseName,
                     inv.getQuantity(),
                     threshold,
                     daysUntilStockout,
@@ -56,7 +71,7 @@ public class AlertService {
             }
         }
 
-        return new AlertResponse(alerts, alerts.size());
+        return new AlertResponse(alerts, alerts.size(), page, inventoryPage.hasNext());
     }
 
     private int getThresholdForType(String productType) {
@@ -67,3 +82,4 @@ public class AlertService {
         };
     }
 }
+//ERROR BECAUSE POM FILE IS MISSING
