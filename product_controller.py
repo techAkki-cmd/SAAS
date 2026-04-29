@@ -1,5 +1,6 @@
 from flask import request, jsonify
 from sqlalchemy.exc import IntegrityError
+from decimal import Decimal, InvalidOperation
 import logging
 
 @app.route('/api/products', methods=['POST'])
@@ -16,7 +17,8 @@ def create_product():
         product = Product(
             name=data['name'],
             sku=data['sku'],
-            price=float(data['price']), 
+            # Cast to string first before Decimal to prevent float precision loss from JSON
+            price=Decimal(str(data['price'])), 
             description=data.get('description')
         )
         
@@ -43,7 +45,7 @@ def create_product():
         logging.warning(f"Integrity violation on product creation (SKU: {data.get('sku')})")
         return jsonify({"error": "SKU already exists or invalid warehouse ID"}), 409
         
-    except ValueError:
+    except (ValueError, InvalidOperation):
         db.session.rollback()
         return jsonify({"error": "Invalid data format for numeric fields"}), 400
         
